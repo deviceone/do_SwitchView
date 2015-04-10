@@ -68,8 +68,10 @@
     _moveLayer.myContentColor = [UIColor whiteColor];
     [self.layer addSublayer:_moveLayer];
     
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selfViewTap:)];
-    [self addGestureRecognizer:tap];
+//    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selfViewTap:)];
+//    [self addGestureRecognizer:tap];
+//    改用touch事件，避免快速点击无效
+    [self addTarget:self action:@selector(touchUpInside:) forControlEvents:UIControlEventTouchUpInside];
     
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(selfViewPan:)];
     [self addGestureRecognizer:pan];
@@ -151,7 +153,7 @@
     }
 }
 
-- (void)selfViewTap:(UITapGestureRecognizer *)tap
+- (void)touchUpInside:(UIControl *)control
 {
     isLongTouch = NO;
     NSLog(@"%s",__func__);
@@ -206,6 +208,10 @@
     doInvokeResult* _invokeResult = [[doInvokeResult alloc]init:_model.UniqueKey];
     [_model.EventCenter FireEvent:@"changed" :_invokeResult ];
 }
+//
+//- (void)selfViewTap:(UITapGestureRecognizer *)tap
+//{
+//}
 - (void)selfViewPan:(UIPanGestureRecognizer *)pan
 {
     isLongTouch = NO;
@@ -365,7 +371,7 @@
         isOn = NO;
     else
         isOn = YES;
-    [self selfViewTap:nil];
+    [self touchUpInside:self];
 }
 
 #pragma mark - doIUIModuleView协议方法（必须）<大部分情况不需修改>
