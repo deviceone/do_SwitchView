@@ -41,6 +41,8 @@
     CGPoint beginPoint;
     //是否长时间按下。长时间按下pan和tap手势无效。需要还原组件
     BOOL isLongTouch;
+    //移动过，就不返回
+    BOOL isMoved;
 }
 
 #pragma mark - doIUIModuleView协议方法（必须）
@@ -68,11 +70,6 @@
     _moveLayer.myContentColor = [UIColor whiteColor];
     [self.layer addSublayer:_moveLayer];
     
-//    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(selfViewTap:)];
-//    [self addGestureRecognizer:tap];
-//    改用touch事件，避免快速点击无效
-    [self addTarget:self action:@selector(touchUpInside:) forControlEvents:UIControlEventTouchUpInside];
-    
     UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(selfViewPan:)];
     [self addGestureRecognizer:pan];
 }
@@ -84,7 +81,7 @@
     if(isOn)
     {
         [UIView animateWithDuration:0.5 animations:^{
-            _moveLayer.frame = CGRectMake(W-H*5/4, 0, H*5/4, H);
+            _moveLayer.frame = CGRectMake(W-(H-_board)*5/4, _board/2, (H-_board)*5/4, H-_board);
             [_moveLayer setNeedsDisplay];
         } completion:^(BOOL finished) {
             NSLog(@"点击变大");
@@ -93,8 +90,8 @@
     else
     {
         [UIView animateWithDuration:0.6 animations:^{
-            _moveLayer.frame = CGRectMake(0, 0, H*5/4, H);
-            _changLayer.transform = CATransform3DMakeScale(0.1, 0.1, 1);
+            _moveLayer.frame = CGRectMake(_board/2, _board/2, (H-_board)*5/4, H-_board);
+            _changLayer.transform = CATransform3DMakeScale(0.0, 0.0, 1);
             [_moveLayer setNeedsDisplay];
         } completion:^(BOOL finished) {
             NSLog(@"点击变大");
@@ -125,10 +122,16 @@
 #pragma mark - private methed
 - (void)reloadMoveLayer
 {
+    if(_moveLayer.frame.size.width != _moveLayer.frame.size.height && !isMoved)
+    {
+        [self valueChanged];
+        isOn = !isOn;
+    }
+    
     if(isOn)
     {
-        [UIView animateWithDuration:0.2 animations:^{
-            _moveLayer.frame = CGRectMake(W-H, 0, H, H);
+        [UIView animateWithDuration:2.5 animations:^{
+            _moveLayer.frame = CGRectMake(W-(H-_board)-_board/2, _board/2, H-_board, H-_board);
             _changLayer.transform = CATransform3DMakeScale(0, 0, 1);
             [self setAllLayerDisplay];
         } completion:^(BOOL finished) {
@@ -140,8 +143,8 @@
     }
     else
     {
-        [UIView animateWithDuration:0.2 animations:^{
-            _moveLayer.frame = CGRectMake(0, 0, H, H);
+        [UIView animateWithDuration:2.5 animations:^{
+            _moveLayer.frame = CGRectMake(_board/2, _board/2, H-_board, H-_board);
             _changLayer.transform = CATransform3DMakeScale(1, 1, 1);
             [self setAllLayerDisplay];
         } completion:^(BOOL finished) {
@@ -151,71 +154,19 @@
             NSLog(@"还原 原点");
         }];
     }
+    isMoved = NO;
 }
 
-- (void)touchUpInside:(UIControl *)control
+- (void)valueChanged
 {
-    isLongTouch = NO;
-    NSLog(@"%s",__func__);
-    if(isOn)
-    {
-        _colorLayer.myShadowColor = _221Color;
-        [self setAllLayerDisplay];
-        [UIView animateWithDuration:0.2 animations:^{
-            _moveLayer.frame = CGRectMake(_moveLayer.frame.origin.x-(W-H)/5, 0, H*6/4, H);
-            _changLayer.transform = CATransform3DMakeScale(0.3, 0.3, 1);
-        } completion:^(BOOL finished) {
-            [UIView animateWithDuration:0.4 animations:^{
-                _moveLayer.frame = CGRectMake(0, 0, H*6/4, H);
-                _changLayer.transform = CATransform3DMakeScale(0.8, 0.8, 1);
-            } completion:^(BOOL finished) {
-                [UIView animateWithDuration:0.2 animations:^{
-                    _moveLayer.frame = CGRectMake(0, 0, H, H);
-                    _changLayer.transform = CATransform3DMakeScale(1, 1, 1);
-                } completion:^(BOOL finished) {
-                    NSLog(@"关闭完成");
-                    _colorLayer.myContentColor = _221Color;
-                    [self setAllLayerDisplay];
-                }];
-            }];
-        }];
-    }
-    else
-    {
-        _colorLayer.myShadowColor = [UIColor greenColor];
-        [self setAllLayerDisplay];
-        [UIView animateWithDuration:0.2 animations:^{
-            NSLog(@"%f",W-H);
-            _moveLayer.frame = CGRectMake((W-H)/5, 0, H*6/4,H);
-            _changLayer.transform = CATransform3DMakeScale(0.8, 0.8, 1);
-        } completion:^(BOOL finished) {
-            [UIView animateWithDuration:0.4 animations:^{
-                _moveLayer.frame = CGRectMake(W, 0,H*6/4, H);
-                _changLayer.transform = CATransform3DMakeScale(0.3, 0.3, 1);
-            } completion:^(BOOL finished) {
-                [UIView animateWithDuration:0.2 animations:^{
-                    _moveLayer.frame = CGRectMake(W-H, 0, H, H);
-                    _changLayer.transform = CATransform3DMakeScale(0, 0, 1);
-                } completion:^(BOOL finished) {
-                    NSLog(@"开启完成");
-                    _colorLayer.myContentColor = [UIColor greenColor];
-                    [self setAllLayerDisplay];
-                }];
-            }];
-        }];
-    }
-    isOn = !isOn;
+    NSLog(@"fireEvent");
     doInvokeResult* _invokeResult = [[doInvokeResult alloc]init:_model.UniqueKey];
-    [_model.EventCenter FireEvent:@"changed" :_invokeResult ];
+    [_model.EventCenter FireEvent:@"changed":_invokeResult];
 }
-//
-//- (void)selfViewTap:(UITapGestureRecognizer *)tap
-//{
-//}
+
 - (void)selfViewPan:(UIPanGestureRecognizer *)pan
 {
     isLongTouch = NO;
-    //NSLog(@"%s",__func__);
     switch (pan.state)
     {
         case UIGestureRecognizerStateBegan:
@@ -240,10 +191,10 @@
 {
     if(isOn)
     {
-        if(newPoint.x-beginPoint.x >= (W-H)*4/5)
+        if(newPoint.x-beginPoint.x >= (W-H))
         {
-            [UIView animateWithDuration:0.2 animations:^{
-                _moveLayer.frame = CGRectMake(W-H, 0, H, H);
+            [UIView animateWithDuration:2.75 animations:^{
+                _moveLayer.frame = CGRectMake(W-(H-_board)-_board/2, _board/2, H-_board, H-_board);
                 _changLayer.transform = CATransform3DMakeScale(0, 0, 1);
             } completion:^(BOOL finished) {
                 _colorLayer.myContentColor = [UIColor greenColor];
@@ -251,32 +202,31 @@
                 [self setAllLayerDisplay];
             }];
         }
-        else if(beginPoint.x-newPoint.x >= (W-H)*4/5)
+        else if(beginPoint.x-newPoint.x >= (W-H))
         {
-            [UIView animateWithDuration:0.2 animations:^{
-                _moveLayer.frame = CGRectMake(0, 0, H*5/4, H);
-                _changLayer.transform = CATransform3DMakeScale(1, 1, 1);
+            [UIView animateWithDuration:1.25 animations:^{
+                _moveLayer.frame = CGRectMake(_board/2, _board/2, (H-_board)*5/4, H-_board);
             } completion:^(BOOL finished) {
                 _colorLayer.myContentColor = _221Color;
                 _colorLayer.myShadowColor = _221Color;
                 [self setAllLayerDisplay];
                 beginPoint = newPoint;
                 isOn = !isOn;
-                doInvokeResult* _invokeResult = [[doInvokeResult alloc]init:_model.UniqueKey];
-                [_model.EventCenter FireEvent:@"changed" :_invokeResult ];
+                [self valueChanged];
             }];
+            isMoved = YES;
         }
         else
         {
-            NSLog(@"不处理");
+            NSLog(@"不处理!");
         }
     }
     else
     {
-        if(beginPoint.x-newPoint.x >= (W-H)*4/5)
+        if(beginPoint.x-newPoint.x >= (W-H))
         {
-            [UIView animateWithDuration:0.2 animations:^{
-                _moveLayer.frame = CGRectMake(0, 0, H, H);
+            [UIView animateWithDuration:2.75 animations:^{
+                _moveLayer.frame = CGRectMake(_board/2, _board/2, H-_board, H-_board);
                 _changLayer.transform = CATransform3DMakeScale(1, 1, 1);
             } completion:^(BOOL finished) {
                 _colorLayer.myContentColor = _221Color;
@@ -284,24 +234,23 @@
                 [self setAllLayerDisplay];
             }];
         }
-        else if(newPoint.x-beginPoint.x >= (W-H)*4/5)
+        else if(newPoint.x-beginPoint.x >= (W-H))
         {
-            [UIView animateWithDuration:0.2 animations:^{
-                _moveLayer.frame = CGRectMake(W-H*5/4, 0, H*5/4, H);
-                _changLayer.transform = CATransform3DMakeScale(0, 0, 1);
+            [UIView animateWithDuration:1.25 animations:^{
+                _moveLayer.frame = CGRectMake(W-(H-_board)*5/4, _board/2, (H-_board)*5/4, H-_board);
             } completion:^(BOOL finished) {
                 _colorLayer.myContentColor = [UIColor greenColor];
                 _colorLayer.myShadowColor = [UIColor greenColor];
                 [self setAllLayerDisplay];
                 beginPoint = newPoint;
                 isOn = !isOn;
-                doInvokeResult* _invokeResult = [[doInvokeResult alloc]init:_model.UniqueKey];
-                [_model.EventCenter FireEvent:@"changed" :_invokeResult ];
+                [self valueChanged];
             }];
+            isMoved = YES;
         }
         else
         {
-            NSLog(@"不处理");
+            NSLog(@"不处理!");
         }
     }
 }
@@ -345,13 +294,22 @@
         H = self.frame.size.width;
     }
     _board = W/30;
-    _colorLayer.frame = CGRectMake(0, 0, W, H);
     _colorLayer.board = _board;
-    _changLayer.frame = CGRectMake(0, 0, W, H);
     _changLayer.board = _board;
-    _moveLayer.frame = CGRectMake(_board, _board, H-_board*2, H-_board*2);
-    _moveLayer.board = _board;
-    
+    _moveLayer.board = _board/2;
+    _colorLayer.frame = CGRectMake(0, 0, W, H);
+    if(!isOn)
+    {
+        _changLayer.frame = CGRectMake(0, 0, W, H);
+        _moveLayer.frame = CGRectMake(_board/2, _board/2, H-_board, H-_board);
+    }
+    else
+    {
+        _changLayer.transform = CATransform3DMakeScale(1, 1, 1);
+        _changLayer.frame = CGRectMake(0, 0, W, H);
+        _changLayer.transform = CATransform3DMakeScale(0, 0, 1);
+        _moveLayer.frame = CGRectMake(W-(H-_board)-_board/2, _board/2, H-_board, H-_board);
+    }
     [self setAllLayerDisplay];
 }
 
@@ -368,10 +326,10 @@
 {
     //自己的代码实现
     if([newValue isEqualToString:@"true"] || [newValue isEqualToString:@"1"])
-        isOn = NO;
-    else
         isOn = YES;
-    [self touchUpInside:self];
+    else
+        isOn = NO;
+    [self reloadMoveLayer];
 }
 
 #pragma mark - doIUIModuleView协议方法（必须）<大部分情况不需修改>
@@ -405,8 +363,6 @@
 
 
 
-
-
 //自定义layer，用于显示。
 @implementation myLayer
 
@@ -426,7 +382,7 @@
     CGContextClip(context);
     //内容上色
     CGContextSetFillColorWithColor(context, self.myContentColor.CGColor);
-    CGContextFillRect(context, CGRectMake(0, 0, self.bounds.size.width, self.bounds.size.height));
+    CGContextFillRect(context, CGRectMake(self.board, self.board, self.bounds.size.width-2*self.board, self.bounds.size.height-2*self.board));
     
     //UIGraphicsPushContext(context);
     UIGraphicsPopContext();
