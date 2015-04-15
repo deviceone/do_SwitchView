@@ -66,6 +66,7 @@ public class do_SwitchView_View extends Switch implements DoIUIModuleView, do_Sw
 	 */
 	@Override
 	public void onPropertiesChanged(Map<String, String> _changedValues) {
+		DoUIModuleHelper.handleBasicViewProperChanged(this.model, _changedValues);
 		if(_changedValues.containsKey("checked")){
 			this.setChecked(DoTextHelper.strToBool(_changedValues.get("checked"), false));
 		}
