@@ -1,4 +1,4 @@
-package extimplement;
+package doext.implement;
 
 import java.util.Map;
 
@@ -12,8 +12,8 @@ import core.interfaces.DoIScriptEngine;
 import core.interfaces.DoIUIModuleView;
 import core.object.DoInvokeResult;
 import core.object.DoUIModule;
-import extdefine.do_SwitchView_IMethod;
-import extdefine.do_SwitchView_MAbstract;
+import doext.define.do_SwitchView_IMethod;
+import doext.define.do_SwitchView_MAbstract;
 
 /**
  * 自定义扩展UIView组件实现类，此类必须继承相应VIEW类，并实现DoIUIModuleView,do_SwitchView_IMethod接口；
